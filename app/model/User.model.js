@@ -30,14 +30,12 @@ const userSchema = new Schema({
     creationDate: {type: Date},
     lastUpdated: {type: Date},
     deactivateDate: {type: Date},
-    status:{type:Sting, enum: ['active', 'inactive'], default:'active'},
+    status:{type:String, enum: ['active', 'inactive'], default:'active'},
     updateHistory: [{
         updateDate:{
             type: Date
         },
-        updateSummary:{
-
-        }
+        updateSummary:[]
     }],
     loginHistory: [{
         login: {
@@ -59,14 +57,42 @@ userSchema.pre('save', function(next){
     }
 });
 
+userSchema.pre('update',function(next){
+    let user = this;
+    let date = new Date();
+    let changes = {};
+    let changesArr = [];
+    user.lastUpdated = date;
+    if(user.isModified('name')){
+        changes = {'change1':'name changed'};
+    }
+    if(user.isModified('password')){
+        changes = {'change2':'password updated'};
+         bcrypt.genSalt(10, function(err, salt){
+              bcrypt.hash(user.password, salt, function(err, hash){
+                   user.password = hash;
+                   next();
+              });
+         });
+    }
+    changesArr.push(changes);
+    user.updateHistory.push({
+        updateDate: date,
+        updateSummary:changesArr
+    });
+    
+});
+
 userSchema.methods.generateAuthToken = function() {
     let user = this;
     let access = 'x-genesys-auth';
     let token = jwt.sign({_id: user._id.toHexString(), access}, jwtKey.getjwtKey()).toString();
+    let date = new Date();
     user.tokens.push({
         access: access,
         token: token
     });
+    user.lastUpdated = date;
 
     return user.save().then((success) => {
          return token;

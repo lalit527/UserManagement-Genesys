@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const express = require('express');
 const userRouter = express.Router();
 const userModel = mongoose.model('User');
+const authenticate = require('./../../middlewares/authentication.middleware');
 
 module.exports.controllerFunction  = function(app) {
 
@@ -45,7 +46,7 @@ module.exports.controllerFunction  = function(app) {
                console.log(result);
                return result.generateAuthToken().then((token) => {
                   console.log(token);
-                      var myresponse = responsegenerator.generate(false, 'success', 200, result);
+                      let myresponse = responsegenerator.generate(false, 'success', 200, result);
                       //res.send(myresponse);
                       res.set({
                           'Content-Type': 'application/json',
@@ -57,16 +58,60 @@ module.exports.controllerFunction  = function(app) {
                       }).send(myresponse);
                });
            }).catch((err) => {
-               res.send(err);
+               let myresponse = responsegenerator.generate(true, err, 404, null);
+               res.send(myresponse);
                console.log(err);
            });
            //res.send('hello');
        }
    });
 
-   userRouter.post('/update', (req, res) => {
-    userModel.findOneAndUpdate();
+   userRouter.post('/update', authenticate.authenticate, (req, res) => {
+      if(req.body.email){
+        let myresponse = responsegenerator.generate(true, 'Email cannot be updated', 404, null);
+        res.send(myresponse);
+      }else{
+        let update = req.body;
+        userModel.update({_id: req.user._id}, {update}, (err, result) => {
+            if(err){
+              let myresponse = responsegenerator.generate(true, err, 404, null);
+              res.send(myresponse);
+              console.log(err);
+            }else{
+              let myresponse = responsegenerator.generate(false, 'success', 200, 'Records updated');
+              res.set({
+                  'Content-Type': 'application/json',
+                  'Content-Length': '123',
+                  'ETag': '12345',
+                  'Access-Control-Allow-Origin': '*',
+                  'X-Powered-By': '',
+                  'x-genesys-token': token
+              }).send(myresponse);
+            }
+        });
+      }
+ 
    });
+
+   userRouter.post('/delete', authenticate.authenticate, (req, res) => {
+    userModel.update({_id: req.user._id}, {$set: {status:'inactive'}}, (err, result) => {
+        if(err){
+          let myresponse = responsegenerator.generate(true, err, 404, null);
+          res.send(err);
+          console.log(err);
+        }else{
+          let myresponse = responsegenerator.generate(false, 'success', 200, 'User Deleted');
+          res.set({
+              'Content-Type': 'application/json',
+              'Content-Length': '123',
+              'ETag': '12345',
+              'Access-Control-Allow-Origin': '*',
+              'X-Powered-By': '',
+              'x-genesys-token': token
+          }).send(myresponse);
+        }
+    });
+ });
 
    app.use('/user', userRouter);
 }
