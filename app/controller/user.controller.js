@@ -66,7 +66,8 @@ module.exports.controllerFunction  = function(app) {
        }
    });
 
-   userRouter.post('/update', authenticate.authenticate, (req, res) => {
+   userRouter.put('/update', authenticate.authenticate, (req, res) => {
+     
       if(req.body.email){
         let myresponse = responsegenerator.generate(true, 'Email cannot be updated', 404, null);
         res.send(myresponse);
@@ -93,7 +94,7 @@ module.exports.controllerFunction  = function(app) {
  
    });
 
-   userRouter.post('/delete', authenticate.authenticate, (req, res) => {
+   userRouter.delete('/delete', authenticate.authenticate, (req, res) => {
     userModel.update({_id: req.user._id}, {$set: {status:'inactive'}}, (err, result) => {
         if(err){
           let myresponse = responsegenerator.generate(true, err, 404, null);
